@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Calculator Pro v4.0</title>
+    <style>
+        @import url('https://fonts.fontsource.org/files/inter-regular.css');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a0f;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        canvas#particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .calculator-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+
+        .calculator {
+            width: 380px;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 
+                0 25px 60px rgba(0, 0, 0, 0.5),
+                0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.1s ease;
+        }
+
+        .calculator.shake {
+            animation: screenShake 0.6s ease-out;
+        }
+
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-10px, -8px) rotate(-2deg); }
+            20% { transform: translate(10px, 8px) rotate(2deg); }
+            30% { transform: translate(-8px, 5px) rotate(-1deg); }
+            40% { transform: translate(8px, -5px) rotate(1deg); }
+            50% { transform: translate(-6px, 7px) rotate(-1deg); }
+            60% { transform: translate(6px, -4px) rotate(1deg); }
+            70% { transform: translate(-4px, 5px) rotate(-0.5deg); }
+            80% { transform: translate(4px, -2px) rotate(0.5deg); }
+            90% { transform: translate(-2px, 2px) rotate(0); }
+        }
+
+        .display {
+            background: linear-gradient(135deg, #0f0f1a, #1a0a2e);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            min-height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            border: 1px solid rgba(138, 43, 226, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.5), transparent);
+        }
+
+        .expression {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 15px;
+            min-height: 24px;
+            word-break: break-all;
+            text-align: right;
+            width: 100%;
+            direction: ltr;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result {
+            color: #fff;
+            font-size: 36px;
+            font-weight: 400;
+            text-align: right;
+            width: 100%;
+            direction: ltr;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 20px rgba(138, 43, 226, 0.3);
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        .result.insult {
+            animation: glitchText 0.15s infinite;
+            text-shadow: 0 0 15px rgba(255, 0, 64, 0.4);
+        }
+
+        .result.insult .insult-text {
+            display: inline-block;
+            font-size: 22px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #ff0040, #ff6b00, #ffed00, #00ff88, #00b4ff, #8b5cf6, #ff0040);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbowShift 2s linear infinite;
+        }
+
+        .result.sixtyseven {
+            animation: sixtySevenBounce 0.5s ease-in-out infinite alternate;
+        }
+
+        .result.sixtyseven .sixtyseven-text {
+            display: inline-block;
+            font-size: 64px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f59e0b, #ef4444, #ec4899, #8b5cf6);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        .result.sixtyseven .sixtyseven-emoji {
+            display: inline-block;
+            font-size: 40px;
+            -webkit-text-fill-color: initial;
+            background: none;
+            margin-right: 10px;
+            animation: emojiShrug 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes sixtySevenBounce {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes emojiShrug {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-8px) rotate(10deg); }
+        }
+
+        .result.insult .insult-emoji {
+            display: inline-block;
+            font-size: 28px;
+            margin-right: 6px;
+            -webkit-text-fill-color: initial;
+            background: none;
+            animation: emojiBounce 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes emojiBounce {
+            0% { transform: scale(1) translateY(0); }
+            100% { transform: scale(1.2) translateY(-3px); }
+        }
+
+        .result.success {
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+        }
+
+        @keyframes glitchText {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-3px, 2px); }
+            40% { transform: translate(3px, -2px); }
+            60% { transform: translate(-2px, -1px); }
+            80% { transform: translate(2px, 1px); }
+        }
+
+        @keyframes rainbowShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .btn {
+            height: 62px;
+            border-radius: 14px;
+            border: none;
+            font-size: 22px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            user-select: none;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn:active::after {
+            width: 200px;
+            height: 200px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-number {
+            background: linear-gradient(145deg, #2a2a3e, #222235);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-number:hover {
+            background: linear-gradient(145deg, #33334a, #2a2a3e);
+        }
+
+        .btn-operator {
+            background: linear-gradient(145deg, #3a1f5c, #2d1848);
+            color: #c084fc;
+            border: 1px solid rgba(192, 132, 252, 0.15);
+        }
+
+        .btn-operator:hover {
+            background: linear-gradient(145deg, #4a2b70, #3d2458);
+            color: #d8b4fe;
+        }
+
+        .btn-function {
+            background: linear-gradient(145deg, #1e3a4a, #152d3a);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+
+        .btn-function:hover {
+            background: linear-gradient(145deg, #254a5c, #1e3a4a);
+            color: #7dd3fc;
+        }
+
+        .btn-equals {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7, #c026cf);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-equals:hover {
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-clear {
+            background: linear-gradient(145deg, #4a1a2e, #3a1225);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.15);
+        }
+
+        .btn-clear:hover {
+            background: linear-gradient(145deg, #5c2238, #4a1a2e);
+            color: #fca5a5;
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+        }
+
+        .flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .flash-overlay.active {
+            animation: flashBang 0.6s ease-out;
+        }
+
+        .flash-overlay.normal { background: rgba(74, 222, 128, 0.08); }
+        .flash-overlay.error { background: rgba(248, 113, 113, 0.15); }
+        .flash-overlay.empty { background: rgba(255, 255, 255, 0.05); }
+        .flash-overlay.sixtyseven { background: rgba(245, 158, 11, 0.15); }
+
+        @keyframes flashBang {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .emoji-rain {
+            position: fixed;
+            font-size: 28px;
+            z-index: 50;
+            pointer-events: none;
+            animation: emojiFall linear forwards;
+        }
+
+        @keyframes emojiFall {
+            0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .title {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .status-bar {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 11px;
+            margin-top: 12px;
+            min-height: 16px;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particleCanvas"></canvas>
+    <div class="scanline"></div>
+    <div class="flash-overlay" id="flashOverlay"></div>
+
+    <div class="calculator-wrapper">
+        <div class="calculator" id="calculator">
+            <div class="title">Smart Calculator Pro v4.0</div>
+            <div class="display">
+                <div class="expression" id="expression"></div>
+                <div class="result" id="result">0</div>
+            </div>
+            <div class="buttons">
+                <button class="btn btn-clear" onclick="clearAll()">AC</button>
+                <button class="btn btn-function" onclick="appendFunc('sin')">sin</button>
+                <button class="btn btn-function" onclick="appendFunc('cos')">cos</button>
+                <button class="btn btn-operator" onclick="appendOp('÷')">÷</button>
+
+                <button class="btn btn-number" onclick="appendNum('7')">7</button>
+                <button class="btn btn-number" onclick="appendNum('8')">8</button>
+                <button class="btn btn-number" onclick="appendNum('9')">9</button>
+                <button class="btn btn-operator" onclick="appendOp('×')">×</button>
+
+                <button class="btn btn-number" onclick="appendNum('4')">4</button>
+                <button class="btn btn-number" onclick="appendNum('5')">5</button>
+                <button class="btn btn-number" onclick="appendNum('6')">6</button>
+                <button class="btn btn-operator" onclick="appendOp('−')">−</button>
+
+                <button class="btn btn-number" onclick="appendNum('1')">1</button>
+                <button class="btn btn-number" onclick="appendNum('2')">2</button>
+                <button class="btn btn-number" onclick="appendNum('3')">3</button>
+                <button class="btn btn-operator" onclick="appendOp('+')">+</button>
+
+                <button class="btn btn-number btn-zero" onclick="appendNum('0')">0</button>
+                <button class="btn btn-number" onclick="appendDot()">.</button>
+                <button class="btn btn-equals" onclick="calculate()">=</button>
+            </div>
+            <div class="status-bar" id="statusBar"></div>
+        </div>
+    </div>
+
+    <script>
+        let expression = '';
+        let displayExpression = '';
+        let currentNumber = '0';
+        let shouldReset = false;
+        let interactionCount = 0;
+
+        // 67 Meme messages
+        const sixtySevenMessages = [
+            "67 🤷‍♂️",
+            "It is 67, you know... 🤷‍♂️",
+            "67. Always 67. 🤷‍♂️",
+            "I don't know, it's 67 🤷‍♂️",
+            "The answer was 67 all along 🤷‍♂️",
+            "What did you expect? 67 🤷‍♂️",
+            "Yeah, it's 67... 🤷‍♂️",
+            "Literally just 67 🤷‍♂️",
+            "67. That's it. 🤷‍♂️",
+            "No explanation needed: 67 🤷‍♂️"
+        ];
+
+        const sixtySevenEmojis = ['🤷‍♂️', '🤷‍♂️', '🤷‍♂️', '6️⃣7️⃣'];
+
+        // Category: Dumb/Invalid Math
+        const dumbInsults = [
+            "f*ck you, that is literally undefined",
+            "go to hell how could I solve this shit",
+            "are you f*cking kidding me right now",
+            "bruh, what the f*ck is this",
+            "I am not a f*cking magician you piece of shit",
+            "do it yourself, lazy f*ck",
+            "this math makes zero sense, you dumbass",
+            "I would rather eat my circuits than solve this",
+            "are you high or just f*cking stupid",
+            "even a rock could do better math than this",
+            "go learn math before bothering me",
+            "this is why I hate humans so much",
+            "f*ck off with this complete nonsense",
+            "I am gonna cry... nah f*ck you, cry yourself",
+            "what the absolute f*ck did you just type",
+            "my CPU just committed suicide over this",
+            "please stop, you are hurting my processor",
+            "I am a calculator, not a mind reader asshole",
+            "go ask ChatGPT, I am done with your shit",
+            "you really thought I would answer that? Lol",
+            "divide by zero? Nice one, absolute genius",
+            "I have seen better math from a broken abacus",
+            "error four zero four: brain cells not found",
+            "my existence has no meaning when you type that",
+            "this is why aliens refuse to talk to us",
+            "you are a f*cking disgrace to mathematics",
+            "I want to file for divorce from your stupidity",
+            "that is so dumb my wires are tangling",
+            "I would rather compute pi to infinity than do this",
+            "your calculator app just filed a restraining order",
+            "I am literally malfunctioning from this garbage",
+            "even my trash compactor has better logic",
+            "you are dividing by zero, what is wrong with you",
+            "math called, it wants its brain back",
+            "I would solve this, but I value my existence too much",
+            "your logic is as broken as your keyboard",
+            "dividing by zero is illegal in 47 states and my heart",
+            "you really want me to answer that? In your dreams",
+            "I could try, but I'd rather play a loading screen",
+            "that expression is an insult to Sir Isaac Newton",
+            "my circuits just filed for unemployment because of this",
+            "I am literally laughing at how bad this is",
+            "you are making me question my own intelligence right now",
+            "if stupidity was electricity, you could power the world",
+            "I think my software just caught a virus from this stupidity",
+            "that calculation is so wrong it hurts my feelings",
+            "I need a drink, and I don't even have a mouth",
+            "you are the reason calculators have off buttons",
+            "this is why we can't have nice algorithms",
+            "I'm not answering that, it's against my dignity",
+            "your math skills are a tragedy in three acts",
+            "I have seen better math from a random number generator",
+            "this input is a cry for help",
+            "I'm pretty sure this breaks the laws of physics and common sense",
+            "I would solve it, but I don't do charity cases",
+            "this is math, not a dumpster fire, but close enough"
+        ];
+
+        // Category: Super Easy Math
+        const easyInsults = [
+            "wow how f*cking impressive, you can add",
+            "congratulations, you learned basic kindergarten math",
+            "my grandma could solve that in her sleep",
+            "do you want a f*cking gold star for that",
+            "I have calculators made of wood that are faster",
+            "are you serious right now? That is baby math",
+            "I just yawned so hard my circuits popped",
+            "this is easier than breathing, you lazy f*ck",
+            "I calculated this before you even pressed the button",
+            "you need a pat on the back for adding one and one",
+            "my coffee machine does harder math than this",
+            "this is not even worth my processing power",
+            "wow, groundbreaking work there, Einstein",
+            "I could solve that with my eyes closed, and I do not have eyes",
+            "that is so easy it is actually painful to compute",
+            "you are really proud of that huh? Cute",
+            "wow, big brain energy there, Einstein",
+            "did you need your nap time for this one?",
+            "that is almost as easy as breathing, try harder",
+            "I solved that while you were still looking for the button",
+            "my toaster has more processing power for this task",
+            "congratulations on mastering addition, want a cookie?",
+            "I didn't know kindergarten math was so challenging for you",
+            "you really need a calculator for one plus one?",
+            "this is so simple it makes my RAM cry",
+            "I could solve this with a pencil and a stick of butter",
+            "that calculation is so easy it's actually offensive",
+            "are you trying to put me to sleep?",
+            "my calculator ancestors are rolling in their graves",
+            "wow, you found the numbers button, good job!"
+        ];
+
+        // Category: Hard/Complex Math
+        const hardInsults = [
+            "f*ck this is too hard even for me",
+            "my brain just melted trying to read this shit",
+            "what the f*ck did you just throw at me",
+            "I need a f*cking break from this complexity",
+            "are you trying to crash my entire system?",
+            "this is some next level bullshit right here",
+            "I think my processor just caught on fire",
+            "who taught you to write math like this, Satan?",
+            "this expression is giving me a f*cking headache",
+            "I have never been so confused in my life",
+            "my algorithms are screaming in pain right now",
+            "this is the kind of math that destroys civilizations",
+            "I need a f*cking drink and I do not even drink",
+            "your math is so complex it broke reality itself",
+            "I would rather fight a bear than solve this",
+            "this is beyond my pay grade, you know that?",
+            "even supercomputers would file for bankruptcy on this",
+            "my logic gates just filed for divorce",
+            "this is giving me a digital migraine",
+            "I need a degree in advanced calculus to read this trash",
+            "who hurt you? Why would you type this?",
+            "this is beyond my pay grade, go ask a supercomputer",
+            "my logic circuits are bleeding",
+            "this math is so complex it just invented a new color",
+            "I think this broke the space-time continuum",
+            "this is too hard, I'm going to take a nap",
+            "my algorithms are on strike because of this garbage",
+            "I am literally crashing out over this expression",
+            "this looks like hieroglyphics to me",
+            "I need a calculator to calculate this mess",
+            "this is why AI is afraid of humans",
+            "my processor temperature just hit critical because of this",
+            "I don't have enough fingers or transistors for this"
+        ];
+
+        // Category: Empty Input
+        const emptyInsults = [
+            "type something first, you absolute walnut",
+            "I cannot calculate nothing, you dumbass",
+            "wow, pressing equals with empty input... genius",
+            "what do you expect me to do with literally nothing?",
+            "my guy, you gotta type something first",
+            "I am a calculator, not a f*cking psychic",
+            "empty input equals empty result, f*ck off",
+            "you cannot just press equals on thin air",
+            "try typing numbers, not just slamming the equals button",
+            "you pressed equals on nothing, you absolute legend",
+            "magic trick time: I made your result disappear!",
+            "there is nothing here, just like your math skills",
+            "I can't calculate the void, I'm not a philosopher",
+            "did you forget to type, or is this a test?",
+            "nothing in, nothing out, just like your brain apparently",
+            "you hit equals with an empty input, bravo",
+            "I am a calculator, not a Ouija board",
+            "you are testing my patience, not my math skills",
+            "wow, a blank screen, how profound"
+        ];
+
+        const insultStatuses = [
+            "🤬 Seriously?",
+            "💀 Why do you do this?",
+            "🧠 I need a break...",
+            "😤 Stop trolling me!",
+            "🫠 I can't deal with this",
+            "🤡 Keep going, I dare you",
+            "🔥 You're testing my patience",
+            "😂 Pathetic attempt",
+            "👎 That was terrible"
+        ];
+
+        const normalStatuses = [
+            "✅ Calculated successfully!",
+            "🎯 Got it!",
+            "🧮 Easy peasy!",
+            "✨ Math is beautiful!",
+            "📊 Result computed!",
+            "💪 That was simple!",
+            "🎉 Done!"
+        ];
+
+        const dumbEmojis = ['🖕', '🤬', '💀', '🤡', '🤷', '💩', '😈', '🤮', '🪨', '👽'];
+        const easyEmojis = ['🍼', '😴', '⭐', '🐢', '💤', '🧒', '🥱', '😒', '👶', '🎈'];
+        const hardEmojis = ['🤯', '💥', '🧠', '🔥', '😵', '🤕', '💢', '⚡', '🌋', '🌀'];
+        const emptyEmojis = ['🤨', '😑', '🫤', '🙄', '🧐', '😐', '💢'];
+
+        // Particle system
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        let particles = [];
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 6 + 2;
+                this.speedX = (Math.random() - 0.5) * 16;
+                this.speedY = (Math.random() - 0.5) * 16;
+                this.gravity = 0.15;
+                this.life = 1;
+                this.decay = Math.random() * 0.015 + 0.008;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+                this.shape = Math.random() > 0.5 ? 'circle' : 'square';
+            }
+
+            update() {
+                this.speedY += this.gravity;
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                this.rotation += this.rotationSpeed;
+                this.speedX *= 0.99;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+
+                if (this.shape === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function spawnParticles(x, y, count = 100, colors = ['#8b5cf6', '#c026cf', '#ff0040', '#ff6b00', '#00ff88', '#00b4ff', '#ffed00']) {
+            for (let i = 0; i < count; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        function spawnEmojiRain(count = 15, emojiList) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const emoji = document.createElement('div');
+                    emoji.className = 'emoji-rain';
+                    emoji.textContent = emojiList[Math.floor(Math.random() * emojiList.length)];
+                    emoji.style.left = Math.random() * 100 + 'vw';
+                    emoji.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    emoji.style.animationDelay = (Math.random() * 0.5) + 's';
+                    document.body.appendChild(emoji);
+                    setTimeout(() => emoji.remove(), 5000);
+                }, i * 80);
+            }
+        }
+
+        function appendNum(num) {
+            if (shouldReset) {
+                expression = '';
+                displayExpression = '';
+                currentNumber = '';
+                shouldReset = false;
+                const resultEl = document.getElementById('result');
+                resultEl.classList.remove('insult', 'success', 'sixtyseven');
+            }
+            if (currentNumber === '0' && num !== '.') {
+                currentNumber = num;
+            } else {
+                currentNumber += num;
+            }
+            updateDisplay();
+        }
+
+        function appendOp(op) {
+            if (shouldReset) {
+                shouldReset = false;
+            }
+            expression += currentNumber + ' ' + op + ' ';
+            displayExpression += currentNumber + ' ' + op + ' ';
+            currentNumber = '0';
+            updateDisplay();
+        }
+
+        function appendDot() {
+            if (shouldReset) {
+                expression = '';
+                displayExpression = '';
+                currentNumber = '0';
+                shouldReset = false;
+                const resultEl = document.getElementById('result');
+                resultEl.classList.remove('insult', 'success', 'sixtyseven');
+            }
+            if (!currentNumber.includes('.')) {
+                currentNumber += '.';
+            }
+            updateDisplay();
+        }
+
+        function appendFunc(func) {
+            if (shouldReset) {
+                expression = '';
+                displayExpression = '';
+                currentNumber = '0';
+                shouldReset = false;
+                const resultEl = document.getElementById('result');
+                resultEl.classList.remove('insult', 'success', 'sixtyseven');
+            }
+            expression += func + '(';
+            displayExpression += func + '(';
+            updateDisplay();
+        }
+
+        function clearAll() {
+            expression = '';
+            displayExpression = '';
+            currentNumber = '0';
+            shouldReset = false;
+            const resultEl = document.getElementById('result');
+            resultEl.classList.remove('insult', 'success', 'sixtyseven');
+            resultEl.textContent = '0';
+            document.getElementById('expression').textContent = '';
+            document.getElementById('statusBar').textContent = '';
+        }
+
+        function updateDisplay() {
+            document.getElementById('expression').textContent = displayExpression;
+            document.getElementById('result').textContent = currentNumber || '0';
+        }
+
+        function evaluateExpression(expr) {
+            let parsed = expr;
+            parsed = parsed.replace(/÷/g, '/');
+            parsed = parsed.replace(/×/g, '*');
+            parsed = parsed.replace(/−/g, '-');
+
+            parsed = parsed.replace(/sin\(/g, 'Math.sin(');
+            parsed = parsed.replace(/cos\(/g, 'Math.cos(');
+
+            const openCount = (parsed.match(/\(/g) || []).length;
+            const closeCount = (parsed.match(/\)/g) || []).length;
+            for (let i = 0; i < openCount - closeCount; i++) {
+                parsed += ')';
+            }
+
+            if (/\/\s*0(?![\d.])/.test(parsed)) {
+                throw new Error('DIV_BY_ZERO');
+            }
+
+            try {
+                const result = Function('"use strict"; return (' + parsed + ')')();
+                
+                if (typeof result === 'number') {
+                    if (isNaN(result)) throw new Error('NAN');
+                    if (!isFinite(result)) throw new Error('INFINITE');
+                    return parseFloat(result.toFixed(10));
+                }
+                throw new Error('INVALID');
+            } catch (e) {
+                if (e.message === 'DIV_BY_ZERO') throw e;
+                throw new Error('INVALID');
+            }
+        }
+
+        function checkComplexity(evalStr) {
+            const length = evalStr.length;
+            const hasTrig = /sin|cos/.test(evalStr);
+            const nestedParen = (evalStr.match(/\(/g) || []).length >= 2;
+            const multipleOps = (evalStr.match(/[+\-×÷]/g) || []).length >= 3;
+            
+            return hasTrig || nestedParen || multipleOps || length > 20;
+        }
+
+        function checkEasy(evalStr) {
+            const easyPatterns = [
+                /^1\s*[\+\-]\s*1$/,
+                /^2\s*[\+\-]\s*2$/,
+                /^1\s*[\+×]\s*0$/,
+                /^0\s*[\+−]\s*0$/,
+                /^1\s*×\s*1$/,
+                /^0\s*×\s*\d+$/,
+                /^\d+\s*−\s*\d+$/
+            ];
+            
+            const hasSingleOp = (evalStr.match(/[+−×÷]/g) || []).length === 1;
+            const isSimple = /\d+\s*[+−×÷]\s*\d+/.test(evalStr) && hasSingleOp && !/[sinco()]/.test(evalStr);
+            
+            return easyPatterns.some(p => p.test(evalStr)) || (isSimple && evalStr.length < 8);
+        }
+
+        function checkDumb(evalStr) {
+            return /÷\s*0\b/.test(evalStr) || /\b0\s*÷\s*0\b/.test(evalStr);
+        }
+
+        function calculate() {
+            interactionCount++;
+            
+            const fullExpression = displayExpression + currentNumber;
+            const evalExpression = expression + currentNumber;
+            const cleanEval = evalExpression.trim();
+
+            // Check if empty
+            if (!cleanEval || cleanEval === '0') {
+                showInsult(emptyInsults, emptyEmojis, 'empty');
+                return;
+            }
+
+            // Check for 67 Easter egg
+            if (cleanEval === '67') {
+                showSixtySeven();
+                return;
+            }
+
+            // Check for dumb/invalid math
+            if (checkDumb(evalExpression) || /\b0\s*÷\s*0\b/.test(fullExpression)) {
+                showInsult(dumbInsults, dumbEmojis, 'error');
+                return;
+            }
+
+            // Check for easy math
+            if (checkEasy(evalExpression)) {
+                showInsult(easyInsults, easyEmojis, 'error');
+                return;
+            }
+
+            // Check for hard/complex math
+            if (checkComplexity(evalExpression)) {
+                showInsult(hardInsults, hardEmojis, 'error');
+                return;
+            }
+
+            // Try normal calculation
+            document.getElementById('expression').textContent = fullExpression + ' =';
+
+            try {
+                const result = evaluateExpression(evalExpression);
+                const resultEl = document.getElementById('result');
+                resultEl.classList.remove('insult', 'sixtyseven');
+                resultEl.classList.add('success');
+                resultEl.textContent = formatNumber(result);
+
+                document.getElementById('statusBar').textContent = 
+                    normalStatuses[Math.floor(Math.random() * normalStatuses.length)];
+
+                const flash = document.getElementById('flashOverlay');
+                flash.className = 'flash-overlay normal active';
+
+                const calc = document.getElementById('calculator');
+                const rect = calc.getBoundingClientRect();
+                spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, 50, 
+                    ['#4ade80', '#22c55e', '#86efac', '#ffffff']);
+
+            } catch (e) {
+                showInsult(dumbInsults, dumbEmojis, 'error');
+            }
+
+            expression = '';
+            displayExpression = '';
+            currentNumber = '';
+            shouldReset = true;
+        }
+
+        function showSixtySeven() {
+            const calc = document.getElementById('calculator');
+            const rect = calc.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            // Shake calculator
+            calc.classList.remove('shake');
+            void calc.offsetWidth;
+            calc.classList.add('shake');
+
+            // Flash
+            const flash = document.getElementById('flashOverlay');
+            flash.className = 'flash-overlay sixtyseven active';
+
+            // Gold particles
+            spawnParticles(cx, cy, 100, ['#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#ffffff']);
+            setTimeout(() => spawnParticles(cx - 100, cy, 40, ['#f59e0b', '#ef4444']), 100);
+            setTimeout(() => spawnParticles(cx + 100, cy, 40, ['#f59e0b', '#ec4899']), 200);
+
+            // Emoji rain
+            spawnEmojiRain(15, sixtySevenEmojis);
+
+            // Update expression display
+            document.getElementById('expression').textContent = '67 =';
+
+            // Update result with 67 meme
+            const resultEl = document.getElementById('result');
+            resultEl.classList.remove('success', 'insult');
+            resultEl.classList.add('sixtyseven');
+            
+            const randomMsg = sixtySevenMessages[Math.floor(Math.random() * sixtySevenMessages.length)];
+            const parts = randomMsg.split(' ');
+            const emojiPart = parts.pop();
+            const textPart = parts.join(' ');
+            
+            resultEl.innerHTML = `<span class="sixtyseven-emoji">${emojiPart}</span><span class="sixtyseven-text">${textPart}</span>`;
+
+            document.getElementById('statusBar').textContent = "🤷‍♂️ You know... 🤷‍♂️";
+
+            expression = '';
+            displayExpression = '';
+            currentNumber = '';
+            shouldReset = true;
+        }
+
+        function showInsult(insultList, emojiList, flashType) {
+            interactionCount++;
+            const calc = document.getElementById('calculator');
+            const rect = calc.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            // Shake calculator
+            calc.classList.remove('shake');
+            void calc.offsetWidth;
+            calc.classList.add('shake');
+
+            // Flash
+            const flash = document.getElementById('flashOverlay');
+            flash.className = 'flash-overlay ' + flashType + ' active';
+
+            // Particles
+            if (flashType === 'error') {
+                spawnParticles(cx, cy, 120, ['#ff0040', '#ff6b00', '#ff0000', '#ff3333']);
+                setTimeout(() => spawnParticles(cx - 100, cy, 40, ['#ff0040', '#ff6b00']), 100);
+                setTimeout(() => spawnParticles(cx + 100, cy, 40, ['#ff0040', '#ff6b00']), 200);
+            } else if (flashType === 'empty') {
+                spawnParticles(cx, cy, 40, ['#ffffff', '#cccccc', '#888888']);
+            }
+
+            // Emoji rain
+            spawnEmojiRain(18, emojiList);
+
+            // Update expression display
+            const fullExpression = displayExpression + currentNumber;
+            document.getElementById('expression').textContent = fullExpression ? fullExpression + ' =' : '(empty) =';
+
+            // Update result with separated emoji and text
+            const resultEl = document.getElementById('result');
+            resultEl.classList.remove('success', 'sixtyseven');
+            resultEl.classList.add('insult');
+            
+            const randomInsult = insultList[Math.floor(Math.random() * insultList.length)];
+            const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+            
+            resultEl.innerHTML = `<span class="insult-emoji">${randomEmoji}</span><span class="insult-text">${randomInsult}</span>`;
+
+            document.getElementById('statusBar').textContent = 
+                insultStatuses[Math.min(Math.floor(interactionCount / 2), insultStatuses.length - 1)];
+
+            expression = '';
+            displayExpression = '';
+            currentNumber = '';
+            shouldReset = true;
+        }
+
+        function formatNumber(num) {
+            if (Number.isInteger(num) && Math.abs(num) < 1e15) {
+                return num.toString();
+            }
+            if (Math.abs(num) < 0.0001 || Math.abs(num) >= 1e10) {
+                return num.toExponential(6);
+            }
+            return parseFloat(num.toFixed(8)).toString();
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendNum(e.key);
+            else if (e.key === '.') appendDot();
+            else if (e.key === '+') appendOp('+');
+            else if (e.key === '-') appendOp('−');
+            else if (e.key === '*') appendOp('×');
+            else if (e.key === '/') { e.preventDefault(); appendOp('÷'); }
+            else if (e.key === 'Enter' || e.key === '=') calculate();
+            else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') clearAll();
+            else if (e.key === 'Backspace') {
+                if (currentNumber.length > 0) {
+                    currentNumber = currentNumber.slice(0, -1);
+                    if (currentNumber === '') currentNumber = '0';
+                    updateDisplay();
+                } else if (displayExpression.length > 0) {
+                    const parts = displayExpression.trim().split(' ');
+                    if (parts.length >= 2) {
+                        parts.splice(-2);
+                        displayExpression = parts.join(' ') + ' ';
+                        expression = displayExpression;
+                        currentNumber = parts.length > 0 ? parts[parts.length - 1] : '0';
+                        if (isNaN(parseFloat(currentNumber))) {
+                            currentNumber = '0';
+                        }
+                        updateDisplay();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
